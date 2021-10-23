@@ -74,8 +74,15 @@ namespace qemu {
   #define TOTAL_PAGES 32768
 
   enum {
-    IOCTL_CMD_EXEC = 3
+    IOCTL_CMD_EXEC = 1
   };
+
+  typedef struct {
+    uint32_t insn_phy_addr;
+    uint32_t insn_count;
+    uint32_t wait_cycles;
+    uint32_t status;
+  } vta_exec_t;
 
   class Device {
   private:
@@ -148,7 +155,7 @@ namespace qemu {
     }
 
     long virt_to_phys(char* buf) {
-      return buf - memory;
+      return (buf - memory) + 0x1000;
     }
 
     int Run(vta_phy_addr_t insn_phy_addr,
@@ -156,7 +163,13 @@ namespace qemu {
             uint32_t wait_cycles) {
       if (fd <= 0)
         return 1;
-      ioctl(fd, IOCTL_CMD_EXEC);
+      vta_exec_t exec = {
+        .insn_phy_addr = insn_phy_addr,
+        .insn_count = insn_count,
+        .wait_cycles = wait_cycles,
+        .status = 1
+      };
+      ioctl(fd, IOCTL_CMD_EXEC, &exec);
       return 0;
     }
   };
